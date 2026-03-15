@@ -1,0 +1,25 @@
+app:
+  name: GoComicMosaic
+  env: local
+
+http:
+  port: 8080
+  read_timeout: 10s
+  write_timeout: 10s
+
+database:
+  dsn: postgres://gcm:gcm123@hansaes.cn:5432/gcm?sslmode=disable
+
+auth:
+  jwt_secret: EAor0Z9jyBz1BjMB9URHFpUrcekZh9C1TVvZK31Habb
+  jwt_issuer: gocomicmosaic
+  jwt_expire: 24h
+
+storage:
+  root_dir: ./storage
+
+log:
+  level: info
+  format: text
+  output: stdout
+  add_source: false
