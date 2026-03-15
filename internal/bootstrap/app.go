@@ -2,8 +2,12 @@ package bootstrap
 
 import (
 	"HGoComicMosaic/internal/config"
+	platformauth "HGoComicMosaic/internal/platform/auth"
 	"HGoComicMosaic/internal/platform/database"
+	gormrepo "HGoComicMosaic/internal/repository/postgres"
+	"HGoComicMosaic/internal/service"
 	httptransport "HGoComicMosaic/internal/transport/http"
+	"HGoComicMosaic/internal/transport/http/handler"
 	"context"
 	"errors"
 	"fmt"
@@ -27,24 +31,33 @@ func NewApp() (*App, error) {
 		return nil, err
 	}
 
-	db, err := database.New(context.Background(), cfg.Database.DSN)
+	dbClient, err := database.New(context.Background(), cfg.Database.DSN)
 	if err != nil {
 		return nil, err
 	}
 
-	r := httptransport.NewRouter()
+	userRepo := gormrepo.NewUserRepository(dbClient.DB)
+	tokenService := platformauth.NewTokenService([]byte(cfg.Auth.JWTSecret), cfg.Auth.JWTIssuer, cfg.Auth.JWTExpire)
+	authService := service.NewAuthService(userRepo, tokenService)
+	userService := service.NewUserService(userRepo)
+
+	r := httptransport.NewRouter(httptransport.Handlers{
+		Auth:     handler.NewAuthHandler(authService),
+		User:     handler.NewUserHandler(userService),
+		Resource: handler.NewResourceHandler(),
+	})
 	s := httptransport.NewServer(cfg.HTTP.Port, r)
 	fmt.Printf("当前启动的端口 %d", cfg.HTTP.Port)
 
 	return &App{
 		Config:     cfg,
-		DB:         db,
+		DB:         dbClient,
 		httpServer: s,
 	}, nil
 }
 
 func (a *App) Addr() string {
-	return fmt.Sprintf("0.0.0.0:%d", a.Config.HTTP.Port)
+	return fmt.Sprintf("0.0.0.0:%d\n", a.Config.HTTP.Port)
 }
 
 func (a *App) Run(ctx context.Context) error {

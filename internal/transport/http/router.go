@@ -7,7 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter() *gin.Engine {
+type Handlers struct {
+	Auth     *handler.AuthHandler
+	User     *handler.UserHandler
+	Resource *handler.ResourceHandler
+}
+
+func NewRouter(h Handlers) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middleware.RequestID())
@@ -24,13 +30,9 @@ func NewRouter() *gin.Engine {
 
 	apiV1 := r.Group("/api/v1")
 
-	authHandler := handler.NewAuthHandler()
-	userHandler := handler.NewUserHandler()
-	resourceHandler := handler.NewResourceHandler()
-
-	RegisterAuthRoutes(apiV1, authHandler)
-	RegisterUserRoutes(apiV1, userHandler)
-	RegisterResourceRoutes(apiV1, resourceHandler)
+	RegisterAuthRoutes(apiV1, h.Auth)
+	RegisterUserRoutes(apiV1, h.User)
+	RegisterResourceRoutes(apiV1, h.Resource)
 
 	return r
 
